@@ -17,6 +17,8 @@ export interface Proposal extends ProposalData {
     id: string;
     slug: string;
     isPaid: boolean;
+    isAccepted: boolean;
+    acceptedAt: string | null;
     viewsCount: number;
     createdAt: string;
 }
@@ -33,6 +35,17 @@ export interface AdminStats {
     paidProposals: number;
     totalRevenue: number;
     totalViews: number;
+}
+
+// Status info for creators to check their proposal
+export interface ProposalStatus {
+    id: string;
+    slug: string;
+    partnerName: string;
+    isPaid: boolean;
+    isAccepted: boolean;
+    acceptedAt: string | null;
+    viewsCount: number;
 }
 
 // Generate a unique slug for the proposal
@@ -93,6 +106,44 @@ export async function incrementViewCount(slug: string): Promise<void> {
     if (error) {
         console.error('Error incrementing view count:', error);
     }
+}
+
+// Mark proposal as accepted (when partner clicks YES)
+export async function markProposalAccepted(slug: string): Promise<void> {
+    const { error } = await supabase
+        .from('proposals')
+        .update({
+            is_accepted: true,
+            accepted_at: new Date().toISOString()
+        })
+        .eq('slug', slug);
+
+    if (error) {
+        console.error('Error marking proposal as accepted:', error);
+    }
+}
+
+// Get proposal status by ID (for creators to check their proposal)
+export async function getProposalStatus(id: string): Promise<ProposalStatus> {
+    const { data: proposal, error } = await supabase
+        .from('proposals')
+        .select('id, slug, partner_name, is_paid, is_accepted, accepted_at, views_count')
+        .eq('id', id)
+        .single();
+
+    if (error || !proposal) {
+        throw new Error('Proposal not found');
+    }
+
+    return {
+        id: proposal.id,
+        slug: proposal.slug,
+        partnerName: proposal.partner_name,
+        isPaid: proposal.is_paid,
+        isAccepted: proposal.is_accepted ?? false,
+        acceptedAt: proposal.accepted_at,
+        viewsCount: proposal.views_count ?? 0,
+    };
 }
 
 // Create Razorpay payment order (stub for now - will be implemented with Razorpay)
@@ -198,6 +249,8 @@ function mapProposalFromDb(row: Record<string, unknown>): Proposal {
         photos: (row.photos as string[]) || [],
         musicUrl: row.music_url as string,
         isPaid: row.is_paid as boolean,
+        isAccepted: row.is_accepted as boolean ?? false,
+        acceptedAt: row.accepted_at as string | null,
         viewsCount: row.views_count as number,
         createdAt: row.created_at as string,
     };

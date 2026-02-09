@@ -64,9 +64,9 @@ function PaymentContent() {
 
                         setStatus("success");
 
-                        // Redirect to public proposal page
+                        // Redirect to status page so creator can track acceptance
                         setTimeout(() => {
-                            router.push(`/p/${result.slug}`);
+                            router.push(`/status/${proposalId}`);
                         }, 2000);
                     } catch (err) {
                         console.error(err);
@@ -109,8 +109,11 @@ function PaymentContent() {
                             <h2 className="text-2xl font-bold text-romantic-800 mb-2">
                                 Payment Successful! 🎉
                             </h2>
-                            <p className="text-romantic-600 mb-4">
-                                Your proposal is ready! Redirecting you now...
+                            <p className="text-romantic-600 mb-2">
+                                Your proposal is ready!
+                            </p>
+                            <p className="text-romantic-500 text-sm mb-4">
+                                Redirecting to your status page where you can track when they respond...
                             </p>
                             <Loader2 className="w-6 h-6 animate-spin mx-auto text-romantic-500" />
                         </motion.div>

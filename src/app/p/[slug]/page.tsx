@@ -1,11 +1,11 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useCallback, useEffect, use } from "react";
+import { useState, useCallback, useEffect, use, useRef } from "react";
 import { Heart, Calendar, Share2, Copy, Check, Music, Pause, Play } from "lucide-react";
 import { useConfetti } from "@/components/Confetti";
 import FloatingHearts from "@/components/FloatingHearts";
-import { getProposal, incrementViewCount, Proposal } from "@/lib/api";
+import { getProposal, incrementViewCount, markProposalAccepted, Proposal } from "@/lib/api";
 
 interface PageParams {
     params: Promise<{ slug: string }>;
@@ -36,34 +36,40 @@ function ProposalContent({ proposal }: { proposal: Proposal }) {
     const [showFinalMessage, setShowFinalMessage] = useState(false);
     const [copied, setCopied] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
+    const audioRef = useRef<HTMLAudioElement>(null);
 
     const maxNoMoves = 5;
 
-    // Move NO button to random position
+    // Move NO button to random position (kept within viewport)
     const moveNoButton = useCallback(() => {
         if (noMoveCount >= maxNoMoves) {
             setShowFinalMessage(true);
             return;
         }
 
-        // Get viewport dimensions
-        const maxX = window.innerWidth - 200;
-        const maxY = window.innerHeight - 100;
-
-        const newX = Math.random() * maxX - maxX / 2;
-        const newY = Math.random() * maxY - maxY / 2;
+        // Keep within reasonable bounds (max 150px in any direction)
+        const maxOffset = 150;
+        const newX = (Math.random() - 0.5) * 2 * maxOffset;
+        const newY = (Math.random() - 0.5) * 2 * maxOffset;
 
         setNoButtonPosition({ x: newX, y: newY });
         setNoMoveCount((prev) => prev + 1);
     }, [noMoveCount]);
 
-    const handleYesClick = () => {
+    const handleYesClick = async () => {
         setHasClickedYes(true);
         fireConfetti();
 
         // Fire more confetti after delays
         setTimeout(() => fireConfetti(), 500);
         setTimeout(() => fireConfetti(), 1000);
+
+        // Mark proposal as accepted in database
+        try {
+            await markProposalAccepted(proposal.slug);
+        } catch (err) {
+            console.error('Failed to mark as accepted:', err);
+        }
     };
 
     const handleShare = async () => {
@@ -134,16 +140,18 @@ function ProposalContent({ proposal }: { proposal: Proposal }) {
                                 YES 💖
                             </motion.button>
 
-                            {/* NO Button - Moves away! */}
-                            <motion.button
-                                animate={{ x: noButtonPosition.x, y: noButtonPosition.y }}
-                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                onMouseEnter={moveNoButton}
-                                onClick={moveNoButton}
-                                className="px-12 py-5 bg-gray-200 text-gray-600 text-2xl font-bold rounded-full shadow-lg hover:bg-gray-300 transition-colors"
-                            >
-                                NO 😢
-                            </motion.button>
+                            {/* NO Button - Moves away and hides after max attempts! */}
+                            {!showFinalMessage && (
+                                <motion.button
+                                    animate={{ x: noButtonPosition.x, y: noButtonPosition.y }}
+                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                    onMouseEnter={moveNoButton}
+                                    onClick={moveNoButton}
+                                    className="px-12 py-5 bg-gray-200 text-gray-600 text-2xl font-bold rounded-full shadow-lg hover:bg-gray-300 transition-colors"
+                                >
+                                    NO 😢
+                                </motion.button>
+                            )}
                         </div>
 
                         {/* Final message after too many NO attempts */}
@@ -297,32 +305,80 @@ function ProposalContent({ proposal }: { proposal: Proposal }) {
                                 )}
 
                                 {/* Music Player */}
-                                {proposal.musicUrl && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 1.5 }}
-                                        className="glass-card p-6 text-center"
-                                    >
-                                        <button
-                                            onClick={() => setIsPlaying(!isPlaying)}
-                                            className="flex items-center gap-3 mx-auto px-6 py-3 bg-romantic-100 rounded-full text-romantic-600 hover:bg-romantic-200 transition-colors"
+                                {proposal.musicUrl && (() => {
+                                    // Detect YouTube URL and extract video ID
+                                    const getYouTubeId = (url: string) => {
+                                        const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                                        return match ? match[1] : null;
+                                    };
+                                    const youtubeId = getYouTubeId(proposal.musicUrl);
+
+                                    return (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 1.5 }}
+                                            className="glass-card p-6 text-center"
                                         >
-                                            {isPlaying ? (
-                                                <Pause className="w-5 h-5" />
+                                            {youtubeId ? (
+                                                // YouTube Player
+                                                <>
+                                                    <div className="flex items-center justify-center gap-2 mb-4 text-romantic-600">
+                                                        <Music className="w-5 h-5" />
+                                                        <span className="font-medium">🎵 Our Song</span>
+                                                    </div>
+                                                    <div className="rounded-xl overflow-hidden shadow-lg">
+                                                        <iframe
+                                                            width="100%"
+                                                            height="200"
+                                                            src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&loop=1`}
+                                                            title="Our Song"
+                                                            frameBorder="0"
+                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                            allowFullScreen
+                                                        />
+                                                    </div>
+                                                </>
                                             ) : (
-                                                <Play className="w-5 h-5" />
+                                                // Regular Audio Player
+                                                <>
+                                                    <audio
+                                                        ref={audioRef}
+                                                        src={proposal.musicUrl}
+                                                        loop
+                                                        preload="auto"
+                                                    />
+                                                    <button
+                                                        onClick={() => {
+                                                            if (audioRef.current) {
+                                                                if (isPlaying) {
+                                                                    audioRef.current.pause();
+                                                                } else {
+                                                                    audioRef.current.play().catch(console.error);
+                                                                }
+                                                                setIsPlaying(!isPlaying);
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-3 mx-auto px-6 py-3 bg-romantic-100 rounded-full text-romantic-600 hover:bg-romantic-200 transition-colors"
+                                                    >
+                                                        {isPlaying ? (
+                                                            <Pause className="w-5 h-5" />
+                                                        ) : (
+                                                            <Play className="w-5 h-5" />
+                                                        )}
+                                                        <Music className="w-5 h-5" />
+                                                        <span>{isPlaying ? 'Pause Music' : 'Play Our Song'}</span>
+                                                    </button>
+                                                    {isPlaying && (
+                                                        <p className="mt-2 text-sm text-romantic-400 animate-pulse">
+                                                            🎵 Now Playing...
+                                                        </p>
+                                                    )}
+                                                </>
                                             )}
-                                            <Music className="w-5 h-5" />
-                                            <span>Our Song</span>
-                                        </button>
-                                        {isPlaying && (
-                                            <p className="mt-2 text-sm text-romantic-400">
-                                                🎵 Playing: <a href={proposal.musicUrl} target="_blank" rel="noopener noreferrer" className="underline">Listen on external player</a>
-                                            </p>
-                                        )}
-                                    </motion.div>
-                                )}
+                                        </motion.div>
+                                    );
+                                })()}
 
                                 {/* Share Buttons */}
                                 <motion.div

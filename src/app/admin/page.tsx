@@ -189,6 +189,9 @@ export default function AdminPage() {
                                             Status
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Response
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Views
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -215,12 +218,23 @@ export default function AdminPage() {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span
                                                     className={`px-3 py-1 text-xs font-medium rounded-full ${proposal.isPaid
-                                                            ? "bg-green-100 text-green-800"
-                                                            : "bg-yellow-100 text-yellow-800"
+                                                        ? "bg-green-100 text-green-800"
+                                                        : "bg-yellow-100 text-yellow-800"
                                                         }`}
                                                 >
                                                     {proposal.isPaid ? "Paid" : "Draft"}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {proposal.isAccepted ? (
+                                                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-pink-100 text-pink-800">
+                                                        💖 YES!
+                                                    </span>
+                                                ) : proposal.isPaid ? (
+                                                    <span className="text-gray-400 text-sm">Waiting...</span>
+                                                ) : (
+                                                    <span className="text-gray-300 text-sm">—</span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-gray-600">
                                                 {proposal.viewsCount}
