@@ -81,9 +81,10 @@ function PaymentContent() {
             );
 
             openRazorpayCheckout(options);
-        } catch (err) {
-            console.error(err);
-            setError("Failed to initiate payment. Please try again.");
+        } catch (err: any) {
+            console.error('Payment Error:', err);
+            // Show the actual error message if available
+            setError(err.message || "Failed to initiate payment. Please try again.");
             setStatus("error");
         }
     };

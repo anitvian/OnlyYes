@@ -146,42 +146,46 @@ export async function getProposalStatus(id: string): Promise<ProposalStatus> {
     };
 }
 
-// Create Razorpay payment order (stub for now - will be implemented with Razorpay)
+// Create Razorpay payment order
 export async function createPaymentOrder(proposalId: string): Promise<PaymentOrder> {
-    // TODO: Implement with Razorpay when domain is ready
-    console.log('Creating payment order for proposal:', proposalId);
+    const response = await fetch('/api/payment/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposalId }),
+    });
 
-    // For now, return a mock order for testing
-    return {
-        orderId: `order_${nanoid(16)}`,
-        amount: 1000, // ₹10 in paise
-        currency: 'INR',
-        proposalId,
-    };
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.details || errorData.error || 'Failed to create payment order';
+        throw new Error(errorMessage);
+    }
+
+    return response.json();
 }
 
-// Verify payment and activate proposal (stub for now)
+// Verify payment and activate proposal
 export async function verifyPayment(data: {
     razorpayOrderId: string;
     razorpayPaymentId: string;
     razorpaySignature: string;
     proposalId: string;
 }): Promise<{ slug: string }> {
-    // TODO: Implement proper Razorpay verification when domain is ready
-    // For now, just mark the proposal as paid
+    const response = await fetch('/api/payment/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            razorpay_order_id: data.razorpayOrderId,
+            razorpay_payment_id: data.razorpayPaymentId,
+            razorpay_signature: data.razorpaySignature,
+            proposalId: data.proposalId,
+        }),
+    });
 
-    const { data: proposal, error } = await supabase
-        .from('proposals')
-        .update({ is_paid: true })
-        .eq('id', data.proposalId)
-        .select('slug')
-        .single();
-
-    if (error || !proposal) {
+    if (!response.ok) {
         throw new Error('Payment verification failed');
     }
 
-    return { slug: proposal.slug };
+    return response.json();
 }
 
 // Get admin stats

@@ -11,7 +11,7 @@ export default function Home() {
       <FloatingHearts />
 
       {/* Hero Section */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 text-center">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20 text-center">
         {/* Decorative elements */}
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
@@ -97,7 +97,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2, duration: 0.8 }}
-          className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl"
+          className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl w-full px-2"
         >
           {[
             { emoji: "✨", title: "Personalized", desc: "Add your names, photos & love story" },
@@ -120,7 +120,7 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="absolute bottom-0 left-0 right-0 p-6 text-center text-romantic-400 text-sm z-10">
+      <footer className="relative z-10 py-6 text-center text-romantic-400 text-sm">
         Made with 💖 by OnlyYes
       </footer>
     </main>
