@@ -2,14 +2,51 @@
 
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Heart, Users, Eye, IndianRupee, RefreshCw } from "lucide-react";
+import { Heart, Users, Eye, IndianRupee, RefreshCw, Lock } from "lucide-react";
 import { getAdminStats, getAdminProposals, AdminStats, Proposal } from "@/lib/api";
 
 export default function AdminPage() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [password, setPassword] = useState("");
+    const [authError, setAuthError] = useState("");
+    const [authLoading, setAuthLoading] = useState(false);
+
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [proposals, setProposals] = useState<Proposal[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setAuthLoading(true);
+        setAuthError("");
+
+        try {
+            const res = await fetch('/api/admin/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password }),
+            });
+
+            if (res.ok) {
+                setIsAuthenticated(true);
+                sessionStorage.setItem('admin_auth', 'true');
+            } else {
+                setAuthError("Wrong password. Try again.");
+            }
+        } catch {
+            setAuthError("Connection error. Please try again.");
+        } finally {
+            setAuthLoading(false);
+        }
+    };
+
+    // Check if already authenticated this session
+    useEffect(() => {
+        if (sessionStorage.getItem('admin_auth') === 'true') {
+            setIsAuthenticated(true);
+        }
+    }, []);
 
     const fetchData = async () => {
         setLoading(true);
@@ -29,8 +66,48 @@ export default function AdminPage() {
     };
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (isAuthenticated) {
+            fetchData();
+        }
+    }, [isAuthenticated]);
+
+    // Login Gate
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm text-center"
+                >
+                    <Lock className="w-12 h-12 text-romantic-500 mx-auto mb-4" />
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Admin Access</h1>
+                    <p className="text-gray-500 text-sm mb-6">Enter password to access the dashboard</p>
+
+                    <form onSubmit={handleLogin}>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Enter admin password"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl mb-4 text-center focus:outline-none focus:ring-2 focus:ring-romantic-500 focus:border-transparent"
+                            autoFocus
+                        />
+                        {authError && (
+                            <p className="text-red-500 text-sm mb-4">{authError}</p>
+                        )}
+                        <button
+                            type="submit"
+                            disabled={authLoading || !password}
+                            className="w-full bg-romantic-500 text-white py-3 rounded-xl font-semibold hover:bg-romantic-600 transition-colors disabled:opacity-50"
+                        >
+                            {authLoading ? "Verifying..." : "Login"}
+                        </button>
+                    </form>
+                </motion.div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
