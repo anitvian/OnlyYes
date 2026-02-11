@@ -38,7 +38,7 @@ function ProposalContent({ proposal }: { proposal: Proposal }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const audioRef = useRef<HTMLAudioElement>(null);
 
-    const maxNoMoves = 5;
+    const maxNoMoves = 50;
 
     // Move NO button to random position (kept within viewport)
     const moveNoButton = useCallback(() => {
