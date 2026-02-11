@@ -36,6 +36,23 @@ export default function CreatePage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
 
+    // YES/NO preview state
+    const [noButtonPosition, setNoButtonPosition] = useState({ x: 0, y: 0 });
+    const [previewYesClicked, setPreviewYesClicked] = useState(false);
+    const [noMoveCount, setNoMoveCount] = useState(0);
+
+    const moveNoButton = () => {
+        const x = (Math.random() - 0.5) * 200;
+        const y = (Math.random() - 0.5) * 100;
+        setNoButtonPosition({ x, y });
+        setNoMoveCount((c) => c + 1);
+    };
+
+    const handlePreviewYes = () => {
+        setPreviewYesClicked(true);
+        setTimeout(() => setPreviewYesClicked(false), 2000);
+    };
+
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
@@ -297,6 +314,66 @@ export default function CreatePage() {
                                 {error}
                             </motion.div>
                         )}
+
+                        {/* YES/NO Button Preview */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="glass-card p-6 text-center"
+                        >
+                            <h3 className="text-romantic-500 font-semibold mb-2 flex items-center justify-center gap-2">
+                                🎮 Preview: How your proposal will look
+                            </h3>
+                            <p className="text-romantic-400 text-sm mb-6">Try clicking the buttons!</p>
+
+                            {previewYesClicked ? (
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="py-4"
+                                >
+                                    <p className="text-3xl mb-2">🎉</p>
+                                    <p className="text-romantic-700 font-bold text-lg">
+                                        {formData.partnerName || "Your Partner"} said YES!
+                                    </p>
+                                </motion.div>
+                            ) : (
+                                <div className="flex gap-6 items-center justify-center relative min-h-[80px]">
+                                    <motion.button
+                                        type="button"
+                                        onClick={handlePreviewYes}
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="px-10 py-4 bg-romantic-gradient-dark text-white text-xl font-bold rounded-full shadow-2xl animate-pulse-glow"
+                                    >
+                                        YES 💖
+                                    </motion.button>
+
+                                    {noMoveCount < 5 && (
+                                        <motion.button
+                                            type="button"
+                                            animate={{ x: noButtonPosition.x, y: noButtonPosition.y }}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                            onMouseEnter={moveNoButton}
+                                            onClick={moveNoButton}
+                                            className="px-10 py-4 bg-gray-200 text-gray-600 text-xl font-bold rounded-full shadow-lg hover:bg-gray-300 transition-colors"
+                                        >
+                                            NO 😢
+                                        </motion.button>
+                                    )}
+                                </div>
+                            )}
+
+                            {noMoveCount >= 5 && !previewYesClicked && (
+                                <motion.p
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="mt-2 text-romantic-600 text-sm"
+                                >
+                                    The NO button ran away! 😅 Just click YES already!
+                                </motion.p>
+                            )}
+                        </motion.div>
 
                         {/* Submit Button */}
                         <motion.button
