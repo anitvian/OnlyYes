@@ -64,6 +64,14 @@ function ProposalContent({ proposal }: { proposal: Proposal }) {
         setTimeout(() => fireConfetti(), 500);
         setTimeout(() => fireConfetti(), 1000);
 
+        // Autoplay music after a short delay (wait for content to render)
+        setTimeout(() => {
+            if (audioRef.current) {
+                audioRef.current.play().catch(() => { });
+                setIsPlaying(true);
+            }
+        }, 1500);
+
         // Mark proposal as accepted in database
         try {
             await markProposalAccepted(proposal.slug);
@@ -331,7 +339,7 @@ function ProposalContent({ proposal }: { proposal: Proposal }) {
                                                         <iframe
                                                             width="100%"
                                                             height="200"
-                                                            src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&loop=1`}
+                                                            src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&loop=1`}
                                                             title="Our Song"
                                                             frameBorder="0"
                                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
